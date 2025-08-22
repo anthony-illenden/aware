@@ -1,8 +1,8 @@
 #!/bin/csh
 
 DetectBlobs \
-    --in_data_list /expanse/nfs/cw3e/csg101/aillenden/python_scripts/wy2015_era5_paths \
-    --out /expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/detect_blobs/frontal/ \
+    --in_data_list /cw3e/mead/projects/csg101/aillenden/tempest_extremes/input_paths/wy2015_era5_paths.txt \
+    --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/detect_blobs/frontal_objects/possible_objects \
     --thresholdcmd "thetae_grad,>=,7.5,0" \
     --geofiltercmd "area,>=,1000km2" \
     --lonname "longitude" \

@@ -1,9 +1,9 @@
-#!/bin/csh
+#!/bin/csh 
 
 StitchBlobs \
-    --in_list /expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/python_scripts/full_wy2015_frontal_objects_paths.txt \
-    --out /expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/stitch_blobs/wy2015_frontal_objects.nc \
+    --in_list /cw3e/mead/projects/csg101/aillenden/tempest_extremes/input_paths/frontal_objects_detect_blobs_paths.txt \
+    --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_blobs/frontal_objects/stitch_frontal_objects_wy2015.nc \
     --var "binary_tag" \
-    --mintime 12h \
+    --mintime 6h \
     --lonname "longitude" \
     --latname "latitude"
