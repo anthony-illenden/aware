@@ -1,0 +1,11 @@
+No connectivity file specified
+..Attempting to generate latitude-longitude grid from data file
+..Total calculated grid area: 1.256637061435891e+01 sr
+..Done
+Time 2014-10-24 09:00:00
+..Build tagged cell array.. Done
+..Apply threshold commands.. Done
+..Apply geometric filters
+....Geofilter "area,>=,1e5km2" removed 16 of 20 blobs
+....Done
+..Writing results.. Done
