@@ -1,16 +1,9 @@
-import xarray as xr
+import xarray as xr 
 import pandas as pd
 import numpy as np
 from scipy.spatial import cKDTree
 from datetime import datetime
 
-
-def load_dataset(ds_path):
-    try:
-        return xr.open_dataset(ds_path)
-    except FileNotFoundError:
-        print(f"Dataset not found at {ds_path}. Please check the path.")
-        return None
 
 def parse_stitchnodes_txt(filepath):
     tracks = []
@@ -34,153 +27,124 @@ def parse_stitchnodes_txt(filepath):
                 })
     return pd.DataFrame(tracks)
 
-def load_df(df_path):
+
+def load_dataset(ds_path):
     try:
-        return parse_stitchnodes_txt(df_path)
+        return xr.open_dataset(ds_path)
     except FileNotFoundError:
-        print(f"Track data file not found at {df_path}. Please check the path.")
+        print(f"Dataset not found at {ds_path}. Please check the path.")
         return None
 
-def merge_detect_blobs(ar_file_path, frontal_file_path, vort_file_path,
-                       output_file="triple_overlap.nc", radius_deg=0.50):
+
+def build_object_tree(ds, time_idx, var_name="binary_tag"):
     """
-    Detect points where AR, frontal, and vortex objects all exist
-    within radius_deg degrees of each other.
+    Build KD-tree of object locations at a given time.
+    Uses `binary_tag > 0` as valid objects.
     """
-    ar_ds = load_dataset(ar_file_path)
-    frt_ds = load_dataset(frontal_file_path)
-    vort_ds = load_dataset(vort_file_path)
-
-    ar_ds, frt_ds, vort_ds = xr.align(ar_ds, frt_ds, vort_ds, join='inner')
-
-    lats = frt_ds['latitude'].values
-    lons = frt_ds['longitude'].values
-    overlap_points = []
-
-    for i in range(len(frt_ds.time)):
-        time_val = frt_ds.time.values[i]
-
-        ar_mask = ar_ds['object_id'].isel(time=i).values > 0
-        frt_mask = frt_ds['object_id'].isel(time=i).values > 0
-        vort_mask = vort_ds['object_id'].isel(time=i).values > 0
-
-        if not (np.any(ar_mask) and np.any(frt_mask) and np.any(vort_mask)):
-            continue
-
-        # 2D indices of True values
-        ar_points = np.column_stack(np.where(ar_mask))
-        frt_points = np.column_stack(np.where(frt_mask))
-        vort_points = np.column_stack(np.where(vort_mask))
-
-        # Convert to lat/lon coordinates
-        ar_coords = np.array([[lats[y], lons[x]] for y, x in ar_points])
-        frt_coords = np.array([[lats[y], lons[x]] for y, x in frt_points])
-        vort_coords = np.array([[lats[y], lons[x]] for y, x in vort_points])
-
-        # Build spatial trees
-        ar_tree = cKDTree(ar_coords)
-        vort_tree = cKDTree(vort_coords)
-
-        matched_lats = []
-        matched_lons = []
-
-        # Check that for each frontal point there is at least one AR and one vortex point within radius_deg
-        for lat, lon in frt_coords:
-            nearby_ar_idx = ar_tree.query_ball_point([lat, lon], radius_deg)
-            nearby_vort_idx = vort_tree.query_ball_point([lat, lon], radius_deg)
-            found = False
-            for ar_idx in nearby_ar_idx:
-                for vort_idx in nearby_vort_idx:
-                    ar_lat, ar_lon = ar_coords[ar_idx]
-                    vort_lat, vort_lon = vort_coords[vort_idx]
-                    dist = np.sqrt((ar_lat - vort_lat)**2 + (ar_lon - vort_lon)**2)
-                    if dist <= radius_deg:
-                        matched_lats.append(lat)
-                        matched_lons.append(lon)
-                        found = True
-                        break
-                if found:
-                    break
-
-        if matched_lats:
-            df = pd.DataFrame({
-                'time': np.repeat(time_val, len(matched_lats)),
-                'lat': matched_lats,
-                'lon': matched_lons,
-                'overlap': np.ones(len(matched_lats), dtype=int)
-            })
-            overlap_points.append(df)
-
-    if overlap_points:
-        overlap_df = pd.concat(overlap_points, ignore_index=True)
-        overlap_ds = overlap_df.set_index(['time', 'lat', 'lon']).to_xarray()
-        overlap_ds.to_netcdf(output_file)
-        return overlap_ds
-    else:
-        print("No triple-overlap points found.")
+    mask = ds[var_name].isel(time=time_idx).values > 0
+    if not np.any(mask):
         return None
 
-def check_spatial_overlap(track_lat, track_lon, track_time, ds, radius_deg=0.50):
-    """
-    Returns True if any overlap=1 point is within radius_deg of track point at track_time.
-    """
+    lats = ds['latitude'].values
+    lons = ds['longitude'].values
+    points = np.column_stack(np.where(mask))
+    coords = np.array([[lats[y], lons[x]] for y, x in points])
+    return cKDTree(coords)
+
+
+def build_txt_tree(df, time_val):
+    df_time = df[df['time'] == time_val]
+    if df_time.empty:
+        return None
+    coords = df_time[['lat', 'lon']].values
+    return cKDTree(coords)
+
+
+def check_overlap_for_time(time_val, ar_ds, frt_ds, slp_df, circ_df, radius_deg=0.25):
+    """Check triple overlap and record nearest SLP value for all circulation points at one time."""
     try:
-        overlap_time_slice = ds.sel(time=track_time, method='nearest')
-        overlap_mask = overlap_time_slice == 1
+        ar_time_idx = np.where(ar_ds.time.values == np.datetime64(time_val))[0][0]
+        frt_time_idx = np.where(frt_ds.time.values == np.datetime64(time_val))[0][0]
+    except IndexError:
+        return pd.DataFrame({
+            "triple_overlap": False,
+            "slp_value": np.nan
+        }, index=circ_df.index)
 
-        if not np.any(overlap_mask):
-            return False
+    ar_tree = build_object_tree(ar_ds, ar_time_idx, var_name="binary_tag")
+    frt_tree = build_object_tree(frt_ds, frt_time_idx, var_name="binary_tag")
+    slp_time = slp_df[slp_df["time"] == time_val]
 
-        overlap_indices = np.column_stack(np.where(overlap_mask.values))
-        lats = overlap_time_slice.lat.values
-        lons = overlap_time_slice.lon.values
+    if ar_tree is None or frt_tree is None or slp_time.empty:
+        return pd.DataFrame({
+            "triple_overlap": False,
+            "slp_value": np.nan
+        }, index=circ_df.index)
 
-        overlap_coords = np.array([[lats[idx[0]], lons[idx[1]]] for idx in overlap_indices])
-        overlap_tree = cKDTree(overlap_coords)
+    pts = circ_df[['lat', 'lon']].values
 
-        nearby_points = overlap_tree.query_ball_point([track_lat, track_lon], radius_deg)
-        return len(nearby_points) > 0
-    except Exception:
-        return False
+    # Build trees
+    frt_near = np.array([bool(x) for x in frt_tree.query_ball_point(pts, radius_deg)])
+    ar_near  = np.array([bool(x) for x in ar_tree.query_ball_point(pts, radius_deg)])
 
-def compute_overlap_column(ds, df_tracks, radius_deg=0.50):
-    """
-    Adds a column 'overlap_qtr_deg' to track DataFrame indicating overlap presence.
-    """
-    try:
-        return df_tracks.assign(
-            overlap_qtr_deg=df_tracks.apply(
-                lambda row: check_spatial_overlap(row.lat, row.lon, row.time, ds['overlap'], radius_deg),
-                axis=1
-            )
-        )
-    except KeyError:
-        print("Dataset does not contain 'overlap'.")
-        return None
+    slp_coords = slp_time[['lat', 'lon']].values
+    slp_tree   = cKDTree(slp_coords)
+    slp_near   = slp_tree.query_ball_point(pts, radius_deg)
 
-def save_csv(df, filepath='overlap_results.csv'):
-    if df is not None:
-        df.to_csv(filepath, index=False)
+    # Default: no overlap, NaN SLP
+    overlap = np.zeros(len(circ_df), dtype=bool)
+    slp_vals = np.full(len(circ_df), np.nan)
+
+    # Loop over circulation points
+    for i, neighbors in enumerate(slp_near):
+        if neighbors:  # if at least one SLP within radius
+            overlap[i] = ar_near[i] and frt_near[i]
+            # assign value of closest SLP
+            _, idx = slp_tree.query(pts[i], k=1)
+            slp_vals[i] = slp_time.iloc[idx]["value"]
+
+    return pd.DataFrame({
+        "triple_overlap": overlap,
+        "slp_value": slp_vals
+    }, index=circ_df.index)
+
+
+def main():
+    print("="*50)
+    print("Script is running...")
+    print("="*50)
+
+    # File paths (updated merged NetCDFs)
+    ar_file = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_blobs/new/merged_ar.nc"
+    frontal_file = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_blobs/new/merged_frt.nc"
+    circulation_file = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/circulation_objects/circulations_wy2015.txt"
+    slp_file = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/cyclone_objects/slp_mins_wy2015.txt"
+
+    ar_ds = load_dataset(ar_file)
+    frt_ds = load_dataset(frontal_file)
+    circ_df = parse_stitchnodes_txt(circulation_file)
+    slp_df = parse_stitchnodes_txt(slp_file)
+
+    if ar_ds is None or frt_ds is None or circ_df is None or slp_df is None:
+        print("Error loading files.")
+        return
+
+    # Align AR and frontal datasets on time
+    ar_ds, frt_ds = xr.align(ar_ds, frt_ds, join='inner')
+
+    # Initialize output column
+    circ_df['triple_overlap'] = False
+
+    # Process circulations grouped by time
+    for time_val, group in circ_df.groupby('time'):
+        results = check_overlap_for_time(time_val, ar_ds, frt_ds, slp_df, group, radius_deg=0.25)
+        circ_df.loc[group.index, ["triple_overlap", "slp_value"]] = results
+
+    circ_df.to_csv("wy2015_overlap.csv", index=False)
+    print("="*50)
+    print("Script is complete!")
+    print("="*50)
 
 
 if __name__ == "__main__":
-    # Expanse paths
-    ar_file = "/expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/stitch_blobs/new_wy2015_ar_objects_stitched.nc"
-    frontal_file = "/expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/stitch_blobs/wy2015_frontal_objects.nc"
-    vort_file = "/expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/stitch_blobs/vort_candidates_stitched.nc"
-    df_file = "/expanse/nfs/cw3e/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/wy2015/corrected_slp.txt"
-
-    overlap_ds = merge_detect_blobs(ar_file, frontal_file, vort_file)
-    if overlap_ds is None:
-        exit(1)
-
-    df_tracks = load_df(df_file)
-    if df_tracks is None:
-        exit(1)
-
-    df_tracks_overlap = compute_overlap_column(overlap_ds, df_tracks)
-    if df_tracks_overlap is None:
-        exit(1)
-
-    save_csv(df_tracks_overlap, 'slp_triple_overlap.csv')
-    print("Script complete!")
+    main()

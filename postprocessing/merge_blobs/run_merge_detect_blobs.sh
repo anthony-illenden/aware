@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name="merge_blobs_export"
-#SBATCH --output="merge_blobs_export.%j.%N.out.txt"
-#SBATCH --partition=cw3e-compute
+#SBATCH --job-name="merge_blobs"
+#SBATCH --output="merge_blobs.%j.%N.out.txt"
+#SBATCH --partition=compute-192
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
