@@ -37,10 +37,7 @@ def load_dataset(ds_path):
 
 
 def build_object_tree(ds, time_idx, var_name="binary_tag"):
-    """
-    Build KD-tree of object locations at a given time.
-    Uses `binary_tag > 0` as valid objects.
-    """
+    """Build KD-tree of object locations at a given time."""
     mask = ds[var_name].isel(time=time_idx).values > 0
     if not np.any(mask):
         return None
@@ -89,24 +86,49 @@ def check_overlap_for_time(time_val, ar_ds, frt_ds, slp_df, circ_df, radius_deg=
 
     slp_coords = slp_time[['lat', 'lon']].values
     slp_tree   = cKDTree(slp_coords)
-    slp_near   = slp_tree.query_ball_point(pts, radius_deg)
 
-    # Default: no overlap, NaN SLP
+    # Default: no overlap, but now we'll always fill slp_vals
     overlap = np.zeros(len(circ_df), dtype=bool)
     slp_vals = np.full(len(circ_df), np.nan)
 
     # Loop over circulation points
-    for i, neighbors in enumerate(slp_near):
-        if neighbors:  # if at least one SLP within radius
-            overlap[i] = ar_near[i] and frt_near[i]
-            # assign value of closest SLP
-            _, idx = slp_tree.query(pts[i], k=1)
-            slp_vals[i] = slp_time.iloc[idx]["value"]
+    for i in range(len(pts)):
+        # Assign value of closest SLP (always)
+        _, idx = slp_tree.query(pts[i], k=1)
+        slp_vals[i] = slp_time.iloc[idx]["value"]
+
+        # Overlap still requires AR + front + SLP within radius
+        frt_hit = len(frt_tree.query_ball_point(pts[i], radius_deg)) > 0
+        ar_hit  = len(ar_tree.query_ball_point(pts[i], radius_deg)) > 0
+        slp_hit = len(slp_tree.query_ball_point(pts[i], radius_deg)) > 0
+
+        overlap[i] = ar_hit and frt_hit and slp_hit
 
     return pd.DataFrame({
         "triple_overlap": overlap,
         "slp_value": slp_vals
     }, index=circ_df.index)
+
+
+def track_meets_criteria(track_df):
+    """
+    Returns True if a track meets either of these:
+    (a) at least 2 consecutive True
+    (b) at least 3 out of 4 consecutive timesteps True
+    """
+    vals = track_df.sort_values("time")["triple_overlap"].values
+
+    # condition (a): 2 consecutive True
+    if np.any(vals[:-1] & vals[1:]):
+        return True
+
+    # condition (b): 3 of 4
+    if len(vals) >= 4:
+        window_sums = np.convolve(vals, np.ones(4, dtype=int), mode="valid")
+        if np.any(window_sums >= 3):
+            return True
+
+    return False
 
 
 def main():
@@ -140,9 +162,32 @@ def main():
         results = check_overlap_for_time(time_val, ar_ds, frt_ds, slp_df, group, radius_deg=0.25)
         circ_df.loc[group.index, ["triple_overlap", "slp_value"]] = results
 
-    circ_df.to_csv("wy2015_overlap.csv", index=False)
+    # Save raw results (all circulations)
+    circ_df.to_csv("wy2015_overlap_raw.csv", index=False)
+
+    # ---------------------------
+    # Apply persistence filtering
+    # ---------------------------
+    valid_ids = []
+    for tid, track in circ_df.groupby("track_id"):
+        if track_meets_criteria(track):
+            valid_ids.append(tid)
+
+    # AR-MFW events (meet persistence criteria)
+    ar_mfw_df = circ_df[circ_df["track_id"].isin(valid_ids)].copy()
+
+    # Only-AR events (detected but never persist with MFW)
+    only_ar_df = circ_df[~circ_df["track_id"].isin(valid_ids)].copy()
+
+    # Save both cases
+    ar_mfw_df.to_csv("wy2015_overlap_AR-MFW.csv", index=False)
+    only_ar_df.to_csv("wy2015_overlap_only-AR.csv", index=False)
+
     print("="*50)
-    print("Script is complete!")
+    print(f"Script is complete! Saved:")
+    print(" - wy2015_overlap_raw.csv   (all cases)")
+    print(" - wy2015_overlap_AR-MFW.csv (persistent overlap cases)")
+    print(" - wy2015_overlap_only-AR.csv (non-persistent cases)")
     print("="*50)
 
 
