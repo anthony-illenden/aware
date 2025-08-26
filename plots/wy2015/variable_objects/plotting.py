@@ -67,39 +67,32 @@ def load_blob_dataset(blob_path, current_time, bounds=None):
 
 
 def parse_nodes_txt(filepath):
-    with open(filepath, "r") as f:
-        lines = f.readlines()
-
     data = []
-    for line in lines:
-        parts = line.strip().split()
-        if len(parts) < 6:
-            continue  # skip malformed lines
+    current_time = None
 
-        try:
-            year   = int(parts[0])
-            month  = int(parts[1])
-            day    = int(parts[2])
-            hour   = int(parts[3])
-            # Some files might include an ID column before lon/lat
-            if len(parts) == 7:
-                node_id = int(parts[4])
-                lon = float(parts[5])
-                lat = float(parts[6])
-            else:  # assume lon/lat directly follow time
-                lon = float(parts[4])
-                lat = float(parts[5])
-                node_id = None
-        except ValueError:
-            continue  # skip bad lines
+    with open(filepath, "r") as f:
+        for line in f:
+            parts = line.strip().split()
+            if not parts:
+                continue
 
-        current_time = datetime(year, month, day, hour)
-        data.append((current_time, lon, lat, node_id))
+            # Header line: first 3 columns are year, month, day
+            if len(parts) == 5 and all(p.isdigit() for p in parts[:3]):
+                year, month, day = map(int, parts[:3])
+                hour = int(parts[-1])  # last column is hour
+                current_time = datetime(year, month, day, hour)
 
-    import pandas as pd
-    return pd.DataFrame(data, columns=["time", "lon", "lat", "node_id"])
+            # Data line: i j lon lat value
+            elif len(parts) == 5:
+                try:
+                    i, j = int(parts[0]), int(parts[1])
+                    lon, lat, val = map(float, parts[2:])
+                    data.append((current_time, i, j, lon, lat, val))
+                except ValueError:
+                    continue
 
-
+    df = pd.DataFrame(data, columns=["time", "i", "j", "lon", "lat", "value"])
+    return df
 
 
 # =====================================================================
@@ -293,10 +286,10 @@ if __name__ == "__main__":
     # USER CONFIGURATION
     EVENTS_CSV_PATH = "/cw3e/mead/projects/csg101/aillenden/wy2015_dates.csv"
     BASE_PATH_MAIN = "/cw3e/mead/projects/csg101/aillenden/era5_data/wy2015/"
-    IVT_BLOB_PATH = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_blobs/new/merged_ar.nc"
-    THETAE_BLOB_PATH = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_blobs/new/merged_frt.nc"
-    VORT_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_nodes/merged_cyclone_objects.txt"
-    SLP_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/postprocessing/merge_nodes/merged_circulation_objects.txt"
+    IVT_BLOB_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_ar.nc"
+    THETAE_BLOB_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_frt.nc"
+    VORT_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_circulation_objects.txt"
+    SLP_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_cyclone_objects.txt"
     OUTPUT_DIR = "/cw3e/mead/projects/csg101/aillenden/plots/wy2015/variable_objects/"
 
     DIRECTIONS = {'North': 55, 'East': 250, 'South': 20, 'West': 200}
