@@ -4,3 +4,4 @@
 # Ignore all log.txt and out.txt files
 log*.txt
 *out.txt
+*.dat
