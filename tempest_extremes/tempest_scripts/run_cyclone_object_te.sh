@@ -13,11 +13,27 @@
 #######################################################
 
 # Run DetectNodes
-csh /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_scripts/uncondensed/cyclone_object_detect_node.csh
+DetectNodes \
+    --in_data_list /cw3e/mead/projects/csg101/aillenden/tempest_extremes/input_paths/wy2015_era5_paths.txt \
+    --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/detect_nodes/cyclone_objects/possible_objects \
+    --mergedist 0.5 \
+    --searchbymin "MSLP" \
+    --lonname "longitude" \
+    --latname "latitude" \
+    --maxlat 60.0 \
+    --minlat 15.0 \
+    --minlon 165 \
+    --maxlon 250 \
+    --timefilter "3hr" \
+    --outputcmd "MSLP,min,0"
+
 rm -f /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_scripts/log*.txt
 
-# Write paths from DetectNodes output
+# Merge DetectNodes output into one txt file
 source activate thesis
+python /cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_scripts/merge_cyclone_txt.py
+
+# Write paths from DetectNodes output
 python /cw3e/mead/projects/csg101/aillenden/tempest_extremes/input_paths/scripts/generate_cyclone_objects_paths.py
 
 # Run StitchNodes

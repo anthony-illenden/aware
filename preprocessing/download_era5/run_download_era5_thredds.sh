@@ -1,13 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name="download_ere5"
-#SBATCH --output="download_ere5.%j.%N.out.txt"
-#SBATCH --partition=compute-192
+#SBATCH --job-name="download_era5"
+#SBATCH --output="download_era5.%j.%N.out.txt"
+#SBATCH --partition=shared-128
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16G
 #SBATCH --export=ALL
 #SBATCH --account=csg101
-#SBATCH --time=14:00:00
+#SBATCH --time=8:00:00
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=aillenden@ucsd.edu
 #######################################################
