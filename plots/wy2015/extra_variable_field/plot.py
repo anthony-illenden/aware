@@ -115,9 +115,11 @@ def make_plots(ds_sliced, save_path=None, directions=None):
     pv_colors = ['white', '#d1e9f7', '#a5cdec', '#79a3d5', '#69999b', '#78af58', '#b0cc58', '#f0d95f', '#de903e', '#cb5428', '#b6282a', '#9b1622', '#7a1419']
     pv_cmap = mcolors.ListedColormap(pv_colors)
     pv_norm = mcolors.BoundaryNorm(pv_levels, pv_cmap.N)
-    im3 = axes[2].contour(lon, lat, pv_925, levels=pv_levels,
-                           colors='black', alpha=0.5, transform=ccrs.PlateCarree(), extend='max')
-    axes[2].clabel(im3, inline=True, fontsize=8, fmt='%.2f', colors='black')
+    im3 = axes[2].contourf(lon, lat, pv_925, levels=pv_levels,
+                           cmap=pv_cmap, norm=pv_norm, transform=ccrs.PlateCarree(), extend='max')
+    pv_c = axes[2].contour(lon, lat, pv_925, levels=np.arange(1.5, 1.75, 0.25), 
+                           colors='black', alpha=0.5, transform=ccrs.PlateCarree())
+    axes[2].clabel(pv_c, inline=True, fontsize=8, fmt='%.2f', colors='black')
     axes[2].set_extent([directions['West'], directions['East'], directions['South'], directions['North']])
     axes[2].coastlines()
     axes[2].add_feature(cfeature.BORDERS)

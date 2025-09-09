@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name="plotting"
 #SBATCH --output="plotting.%j.%N.out.txt"
-#SBATCH --partition=shared-192
+#SBATCH --partition=shared-128
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
