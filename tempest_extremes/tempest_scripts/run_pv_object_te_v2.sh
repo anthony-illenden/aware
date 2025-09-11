@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name="pv_objects"
 #SBATCH --output="pv_objects.%j.%N.out.txt"
-#SBATCH --partition=shared-192
+#SBATCH --partition=shared-128
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -19,11 +19,11 @@ DetectNodes \
     --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/detect_nodes/pv_objects/possible_pv_objects \
     --mergedist 5 \
     --searchbymax "pv_925" \
-    --closedcontourcmd "pv_925,-1.5,1.0,0" \
+    --closedcontourcmd "pv_925,-0.5,2,0" \
     --lonname "longitude" \
     --latname "latitude" \
     --maxlat 60.0 \
-    --minlat 20.0 \
+    --minlat 30.0 \
     --minlon 200 \
     --maxlon 250 \
     --regional \
@@ -40,4 +40,14 @@ StitchNodes \
     --in_list /cw3e/mead/projects/csg101/aillenden/tempest_extremes/input_paths/pv_objects_detect_nodes_paths.txt \
     --in_fmt "lon,lat,pv_925" \
     --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/pv_objects/pv_objects_stitch_paths.txt \
-    --mintime 6h
+    --mintime 6h \
+    --maxgap 1 \
+    --min_endpoint_dist 5
+
+# Activate thesis Python environment for PV plots
+source activate thesis
+
+# Run Python script that plots PV and DetectNodes
+python /cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_field/plot_detect_nodes.py
+
+
