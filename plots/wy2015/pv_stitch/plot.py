@@ -138,7 +138,7 @@ if __name__ == "__main__":
     EVENTS_CSV_PATH = "/cw3e/mead/projects/csg101/aillenden/wy2015_dates.csv"
     BASE_PATH_MAIN = "/cw3e/mead/projects/csg101/aillenden/era5_data/wy2015_extra/"
     OUTPUT_DIR = "/cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_stitch/"
-    STITCH_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/pv_objects/pv_objects_stitch_paths.txt"
+    STITCH_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/pv_objects/pv_ivt_objects_stitch_paths.txt"
 
     DIRECTIONS = {
         'North': 50,

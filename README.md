@@ -1,4 +1,2 @@
-# aware
-# testingi
-# test 2
-# tes 3
+### Project: An Objective Tracking Algorithm of Mesoscale Frontal Waves in Atmospheric Rivers
+GitHub Repository to store scripts related to my thesis work
