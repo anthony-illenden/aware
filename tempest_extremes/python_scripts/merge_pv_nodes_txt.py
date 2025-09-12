@@ -37,6 +37,6 @@ def merge_dat_files(input_dir, output_file):
 
 
 if __name__ == '__main__':
-    input_dir = '/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/detect_nodes/pv_objects/'
-    output_file = '/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_pv_objects.txt'
+    input_dir = '/cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/detect_nodes/pv_ivt_objects/'
+    output_file = '/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_pv_ivt_objects.txt'
     merge_dat_files(input_dir, output_file)

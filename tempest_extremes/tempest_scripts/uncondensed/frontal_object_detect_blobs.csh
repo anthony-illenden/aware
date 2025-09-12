@@ -8,7 +8,7 @@ DetectBlobs \
     --lonname "longitude" \
     --latname "latitude" \
     --maxlat 60.0 \
-    --minlat 15.0 \
-    --minlon 165 \
+    --minlat 30.0 \
+    --minlon 213 \
     --maxlon 250 \
     --timefilter "3hr"

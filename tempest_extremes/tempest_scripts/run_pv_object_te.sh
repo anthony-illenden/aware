@@ -25,7 +25,7 @@ DetectNodes \
     --latname "latitude" \
     --maxlat 60.0 \
     --minlat 30.0 \
-    --minlon 200 \
+    --minlon 213 \
     --maxlon 250 \
     --regional \
     --timefilter "3hr" \
@@ -43,13 +43,14 @@ StitchNodes \
     --out /cw3e/mead/projects/csg101/aillenden/tempest_extremes/tempest_output/stitch_nodes/pv_objects/pv_ivt_objects_stitch_paths.txt \
     --mintime 6h \
     --maxgap 1 \
-    --min_endpoint_dist 5
+    --min_endpoint_dist 5 \
+    --range 4.5
 
 # Activate thesis Python environment for PV plots
-source activate thesis
+#source activate thesis
 
 # Run Python script that plots PV and DetectNodes
-python /cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_stitch/plot.py
+#python /cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_stitch/plot.py
 
 #python /cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_field/plot_detect_nodes.py
 

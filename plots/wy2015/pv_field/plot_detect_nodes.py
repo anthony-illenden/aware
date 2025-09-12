@@ -133,7 +133,7 @@ if __name__ == "__main__":
     EVENTS_CSV_PATH = "/cw3e/mead/projects/csg101/aillenden/wy2015_dates.csv"
     BASE_PATH_MAIN = "/cw3e/mead/projects/csg101/aillenden/era5_data/wy2015_extra/"
     OUTPUT_DIR = "/cw3e/mead/projects/csg101/aillenden/plots/wy2015/pv_field/"
-    DETECT_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_pv_objects.txt"
+    DETECT_NODES_PATH = "/cw3e/mead/projects/csg101/aillenden/tempest_extremes/python_output/merged_pv_ivt_objects.txt"
 
     DIRECTIONS = {
         'North': 50,
